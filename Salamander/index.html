@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>沙羅曼蛇 (Salamander / Life Force) - 街機網頁版</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div id="game-wrapper">
+        <!-- Top Toolbar -->
+        <header id="toolbar">
+            <div class="title-badge">SALAMANDER 1986</div>
+            <div class="toolbar-buttons">
+                <button id="btn-sound" class="arcade-btn" title="開啟/關閉音效">🔊 音效: 開</button>
+                <button id="btn-scanline" class="arcade-btn" title="切換CRT掃描線">📺 CRT: 開</button>
+                <button id="btn-fullscreen" class="arcade-btn" title="全螢幕模式">⛶ 全螢幕</button>
+            </div>
+        </header>
+
+        <!-- Canvas Container -->
+        <main id="game-container">
+            <canvas id="game-canvas" width="800" height="600"></canvas>
+
+            <!-- Popup Message Banner (e.g. Konami Code) -->
+            <div id="center-banner">KONAMI CODE ACTIVATED!</div>
+
+            <!-- Virtual Touch Controls for Mobile / Tablet -->
+            <div id="touch-controls">
+                <div id="touch-dpad">
+                    <div id="touch-stick"></div>
+                </div>
+                <div id="touch-actions">
+                    <div id="touch-btn-auto" class="touch-btn">AUTO</div>
+                    <div id="touch-btn-fire" class="touch-btn">FIRE</div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Entry Point -->
+    <script type="module">
+        import { Game } from './js/core/game.js';
+
+        window.addEventListener('DOMContentLoaded', () => {
+            const canvas = document.getElementById('game-canvas');
+            const game = new Game(canvas);
+            game.start();
+
+            // Resume audio on first user touch / key interaction
+            const unlockAudio = () => {
+                if (game.renderer) {
+                    import('./js/audio/soundEffects.js').then(m => m.sfx.init());
+                    import('./js/audio/chiptuneBgm.js').then(m => m.bgm.init());
+                }
+                window.removeEventListener('click', unlockAudio);
+                window.removeEventListener('keydown', unlockAudio);
+                window.removeEventListener('touchstart', unlockAudio);
+            };
+            window.addEventListener('click', unlockAudio);
+            window.addEventListener('keydown', unlockAudio);
+            window.addEventListener('touchstart', unlockAudio);
+        });
+    </script>
+</body>
+</html>

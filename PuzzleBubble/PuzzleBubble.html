@@ -1,0 +1,899 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>泡泡龍 · Bubble Dragon</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=ZCOOL+KuaiLe&family=Baloo+2:wght@600;800&family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg0:#04101a; --bg1:#0a2433;
+  --panel:rgba(13,42,58,.72); --edge:rgba(96,224,255,.16);
+  --ink:#eaf7ff; --dim:#7fa8ba;
+  --aqua:#3ee6c4; --coral:#ff6b6b; --gold:#ffc247; --sky:#4da6ff;
+}
+*{box-sizing:border-box; margin:0; padding:0}
+html,body{height:100%}
+body{
+  font-family:'Noto Sans TC',sans-serif; color:var(--ink); overflow-x:hidden;
+  background:
+    radial-gradient(1100px 700px at 72% -12%, #0e3a4d 0%, transparent 60%),
+    radial-gradient(900px 650px at 8% 112%, #0a2f3f 0%, transparent 55%),
+    linear-gradient(180deg,#061722 0%,#04101a 100%);
+}
+#bg{position:fixed; inset:0; z-index:0}
+.rays{position:fixed; inset:0; z-index:1; pointer-events:none; overflow:hidden}
+.rays i{position:absolute; top:-22%; width:30vw; height:150vh; filter:blur(34px);
+  background:linear-gradient(180deg,rgba(120,230,255,.10),transparent 70%);
+  transform-origin:top center; animation:sway 12s ease-in-out infinite alternate}
+.rays i:nth-child(1){left:10%}
+.rays i:nth-child(2){left:56%; width:20vw; opacity:.7; animation-duration:15s; animation-delay:-6s}
+.rays i:nth-child(3){left:82%; width:14vw; opacity:.5; animation-duration:9s; animation-delay:-3s}
+@keyframes sway{from{transform:rotate(9deg)}to{transform:rotate(-9deg)}}
+.vignette{position:fixed; inset:0; z-index:1; pointer-events:none;
+  background:radial-gradient(120% 90% at 50% 45%, transparent 55%, rgba(2,8,14,.55) 100%)}
+
+.stage{position:relative; z-index:2; display:flex; gap:20px; justify-content:center;
+  align-items:flex-start; padding:26px 16px; min-height:100vh}
+
+/* ---------- 側欄 ---------- */
+.side{width:225px; display:flex; flex-direction:column; gap:14px; padding-top:6px}
+.card{background:var(--panel); border:1px solid var(--edge); border-radius:16px;
+  padding:16px 16px 14px; box-shadow:0 10px 30px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.05);
+  transition:transform .25s, box-shadow .25s}
+.card:hover{transform:translateY(-3px); box-shadow:0 16px 36px rgba(0,0,0,.45), 0 0 24px rgba(62,230,196,.08), inset 0 1px 0 rgba(255,255,255,.06)}
+.card h3{font:800 11px 'Baloo 2','Noto Sans TC'; letter-spacing:.28em; color:var(--aqua);
+  text-transform:uppercase; margin-bottom:12px; display:flex; align-items:center; gap:8px}
+.card h3::after{content:''; flex:1; height:1px; background:linear-gradient(90deg,var(--edge),transparent)}
+
+.logo{font-family:'ZCOOL KuaiLe'; font-size:52px; line-height:1; letter-spacing:.06em;
+  display:flex; align-items:center; gap:4px;
+  text-shadow:0 4px 0 rgba(0,0,0,.35), 0 0 26px rgba(62,230,196,.35)}
+.logo .bub{width:34px; height:34px; border-radius:50%; flex:none;
+  background:radial-gradient(circle at 32% 28%, #d6fff4, var(--aqua) 45%, #0e8f7e 100%);
+  box-shadow:0 0 18px rgba(62,230,196,.55), inset -3px -5px 8px rgba(0,60,50,.4);
+  animation:bob 2.6s ease-in-out infinite}
+@keyframes bob{0%,100%{transform:translateY(0) scale(1)}50%{transform:translateY(-7px) scale(1.05)}}
+.tag{color:var(--dim); font-size:13px; margin-top:10px; line-height:1.7}
+.tag b{color:var(--gold); font-weight:700}
+
+.stat-row{display:flex; justify-content:space-between; align-items:baseline; padding:7px 0;
+  border-bottom:1px dashed rgba(127,168,186,.18); font-size:14px}
+.stat-row:last-child{border:none}
+.stat-row span{color:var(--dim)}
+.stat-row b{font:800 19px 'Baloo 2'; color:var(--ink)}
+.stat-row b.aq{color:var(--aqua)} .stat-row b.gd{color:var(--gold)}
+
+.keys{display:flex; flex-direction:column; gap:9px; font-size:13px; color:var(--dim)}
+.keys div{display:flex; align-items:center; gap:9px}
+kbd{font:700 11px 'Baloo 2'; background:#123243; border:1px solid rgba(96,224,255,.25);
+  border-bottom-width:3px; border-radius:7px; padding:3px 8px; color:var(--ink); min-width:26px; text-align:center}
+
+.skill{display:flex; gap:11px; align-items:flex-start; padding:10px; border-radius:12px;
+  background:rgba(255,255,255,.035); border:1px solid transparent; margin-bottom:9px; transition:.2s}
+.skill:last-child{margin-bottom:0}
+.skill:hover{border-color:var(--edge); background:rgba(96,224,255,.06); transform:translateX(3px)}
+.skill .ic{font-size:22px; filter:drop-shadow(0 0 8px rgba(255,194,71,.5))}
+.skill b{display:block; font-size:14px; margin-bottom:3px}
+.skill p{font-size:12px; color:var(--dim); line-height:1.55}
+.tips{font-size:12.5px; color:var(--dim); line-height:1.9}
+.tips li{list-style:none; padding-left:16px; position:relative}
+.tips li::before{content:''; position:absolute; left:0; top:9px; width:7px; height:7px; border-radius:50%;
+  background:radial-gradient(circle at 30% 30%, #d6fff4, var(--aqua) 60%); box-shadow:0 0 7px rgba(62,230,196,.7)}
+
+/* ---------- 機台 ---------- */
+.cabinet{display:flex; flex-direction:column; gap:13px; width:478px; max-width:96vw}
+.hud{display:flex; align-items:stretch; gap:10px}
+.hud .box{flex:1; background:var(--panel); border:1px solid var(--edge); border-radius:13px;
+  padding:8px 14px; text-align:center; position:relative; overflow:hidden}
+.hud .box small{display:block; font:800 10px 'Baloo 2'; letter-spacing:.24em; color:var(--dim); text-transform:uppercase}
+.hud .box b{font:800 26px/1.15 'Baloo 2'; color:var(--ink)}
+.hud .box.score b{color:var(--gold); text-shadow:0 0 14px rgba(255,194,71,.4)}
+.hud .box b.bump{animation:bump .3s}
+@keyframes bump{40%{transform:scale(1.22)}}
+.combo{min-width:104px; display:flex; flex-direction:column; justify-content:center; align-items:center;
+  background:linear-gradient(135deg,#3ee6c4,#4da6ff); color:#04222c; border:none;
+  font:800 17px 'Baloo 2','Noto Sans TC'; border-radius:13px; padding:8px 12px;
+  box-shadow:0 0 22px rgba(62,230,196,.4)}
+.combo small{font-size:9px; letter-spacing:.3em}
+.combo.hide{opacity:0; transform:scale(.6); pointer-events:none}
+.combo{transition:opacity .25s, transform .25s}
+.combo.pop{animation:cpop .35s}
+@keyframes cpop{45%{transform:scale(1.25) rotate(-3deg)}}
+
+.screen{position:relative; border-radius:18px; overflow:hidden; border:1px solid rgba(96,224,255,.28);
+  box-shadow:0 0 0 5px rgba(62,230,196,.05), 0 0 46px rgba(62,230,196,.16), 0 24px 60px rgba(0,0,0,.5), inset 0 0 60px rgba(4,20,30,.6);
+  background:#051622}
+.screen.danger{animation:dang 1s ease-in-out infinite}
+@keyframes dang{50%{box-shadow:0 0 0 5px rgba(255,107,107,.12), 0 0 46px rgba(255,107,107,.35), 0 24px 60px rgba(0,0,0,.5), inset 0 0 60px rgba(60,10,10,.5)}}
+#game{display:block; width:100%; height:auto; cursor:crosshair; touch-action:none}
+
+/* 覆蓋層 */
+.overlay{position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+  background:rgba(4,15,24,.78); backdrop-filter:blur(3px);
+  opacity:0; pointer-events:none; transition:opacity .3s}
+.overlay.show{opacity:1; pointer-events:auto}
+.ov-card{position:relative; text-align:center; padding:34px 42px; max-width:86%;
+  background:linear-gradient(160deg, rgba(14,44,60,.92), rgba(7,24,34,.94));
+  border:1px solid rgba(96,224,255,.3); border-radius:22px;
+  box-shadow:0 30px 70px rgba(0,0,0,.6), 0 0 50px rgba(62,230,196,.12);
+  animation:ovin .45s cubic-bezier(.2,1.4,.4,1)}
+@keyframes ovin{from{transform:scale(.7) translateY(24px); opacity:0}}
+.ov-title{font-family:'ZCOOL KuaiLe'; font-size:56px; line-height:1.05; letter-spacing:.08em;
+  text-shadow:0 5px 0 rgba(0,0,0,.4), 0 0 30px rgba(62,230,196,.45)}
+.ov-title .t1{color:#ffd3c9}.ov-title .t2{color:#e2fff2}.ov-title .t3{color:#cfe8ff}
+.ov-sub{font:800 12px 'Baloo 2'; letter-spacing:.5em; color:var(--aqua); margin:8px 0 18px; text-transform:uppercase}
+.ov-desc{font-size:13.5px; color:var(--dim); line-height:1.9; margin-bottom:20px}
+.ov-stats{display:flex; gap:10px; justify-content:center; margin-bottom:22px; flex-wrap:wrap}
+.ov-stats div{background:rgba(255,255,255,.05); border:1px solid var(--edge); border-radius:12px; padding:9px 16px}
+.ov-stats small{display:block; font-size:10px; letter-spacing:.2em; color:var(--dim)}
+.ov-stats b{font:800 22px 'Baloo 2'; color:var(--gold)}
+.newrec{display:inline-block; font:800 13px 'Baloo 2','Noto Sans TC'; background:linear-gradient(135deg,var(--gold),#ff8a3d);
+  color:#3a1c00; border-radius:20px; padding:5px 14px; margin-bottom:14px; animation:cpop .5s; box-shadow:0 0 20px rgba(255,194,71,.5)}
+.btnrow{display:flex; gap:12px; justify-content:center; flex-wrap:wrap}
+.btn{font:800 17px 'Baloo 2','Noto Sans TC'; letter-spacing:.1em; border:none; cursor:pointer;
+  padding:13px 30px; border-radius:14px; color:#04222c;
+  background:linear-gradient(135deg,var(--aqua),#5fd0ff);
+  box-shadow:0 6px 0 #0e7d6c, 0 12px 26px rgba(62,230,196,.35);
+  transition:transform .15s, box-shadow .15s}
+.btn:hover{transform:translateY(-3px); box-shadow:0 9px 0 #0e7d6c, 0 18px 34px rgba(62,230,196,.5)}
+.btn:active{transform:translateY(2px); box-shadow:0 3px 0 #0e7d6c}
+.btn.alt{background:linear-gradient(135deg,#31485a,#22384a); color:var(--ink); box-shadow:0 6px 0 #101d28, 0 12px 26px rgba(0,0,0,.4)}
+.btn.alt:hover{box-shadow:0 9px 0 #101d28, 0 18px 34px rgba(0,0,0,.5)}
+.mini-hints{display:flex; gap:18px; justify-content:center; margin-top:20px; font-size:12px; color:var(--dim)}
+.mini-hints span{display:flex; gap:6px; align-items:center}
+.float-bub{position:absolute; border-radius:50%; pointer-events:none; opacity:.5;
+  background:radial-gradient(circle at 32% 28%, rgba(255,255,255,.8), rgba(62,230,196,.35) 50%, transparent 72%);
+  animation:fup linear infinite}
+@keyframes fup{from{transform:translateY(40px) scale(.7); opacity:0} 15%{opacity:.55} to{transform:translateY(-190px) scale(1.15); opacity:0}}
+
+/* 底部操作列 */
+.dock{display:flex; gap:10px; align-items:stretch}
+.nextbox{width:96px; background:var(--panel); border:1px solid var(--edge); border-radius:13px;
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px;
+  cursor:pointer; transition:.2s; padding:6px 4px}
+.nextbox:hover{border-color:var(--aqua); box-shadow:0 0 16px rgba(62,230,196,.25); transform:translateY(-2px)}
+.nextbox small{font:800 10px 'Baloo 2'; letter-spacing:.25em; color:var(--dim)}
+.nextbox canvas{width:44px; height:44px}
+.pw{position:relative; width:64px; background:var(--panel); border:1px solid var(--edge); border-radius:13px;
+  cursor:pointer; font-size:24px; display:flex; align-items:center; justify-content:center; transition:.2s}
+.pw:hover:not(:disabled){transform:translateY(-3px); border-color:var(--gold); box-shadow:0 0 18px rgba(255,194,71,.3)}
+.pw:disabled{opacity:.32; cursor:not-allowed}
+.pw .cnt{position:absolute; top:-7px; right:-7px; font:800 12px 'Baloo 2'; background:var(--gold); color:#3a1c00;
+  border-radius:50%; width:21px; height:21px; display:flex; align-items:center; justify-content:center; box-shadow:0 2px 8px rgba(0,0,0,.4)}
+.pw.ready{border-color:var(--gold); box-shadow:0 0 0 2px rgba(255,194,71,.5), 0 0 22px rgba(255,194,71,.45); animation:cpop .4s}
+.pw small{position:absolute; bottom:3px; font-size:8px; letter-spacing:.15em; color:var(--dim)}
+.ghost{width:48px; background:var(--panel); border:1px solid var(--edge); border-radius:13px; color:var(--ink);
+  font-size:17px; cursor:pointer; transition:.2s}
+.ghost:hover{border-color:var(--aqua); transform:translateY(-3px)}
+
+@media (max-width:1120px){ .side{display:none} }
+@media (max-width:520px){
+  .cabinet{width:100%}
+  .hud .box b{font-size:20px} .combo{min-width:80px; font-size:14px}
+  .pw{width:56px} .ov-title{font-size:42px}
+}
+</style>
+</head>
+<body>
+<canvas id="bg"></canvas>
+<div class="rays"><i></i><i></i><i></i></div>
+<div class="vignette"></div>
+
+<div class="stage">
+  <!-- 左欄 -->
+  <aside class="side">
+    <div class="card">
+      <div class="logo">泡<span class="bub"></span>龍</div>
+      <p class="tag">深海泡泡射擊遊戲<br>瞄準、發射、<b>三消</b>，讓泡泡龍清空整片海床！</p>
+    </div>
+    <div class="card">
+      <h3>本關狀態</h3>
+      <div class="stat-row"><span>關卡</span><b class="aq" id="stLevel">1</b></div>
+      <div class="stat-row"><span>剩餘泡泡</span><b id="stLeft">—</b></div>
+      <div class="stat-row"><span>本關得分</span><b class="gd" id="stLvScore">0</b></div>
+    </div>
+    <div class="card">
+      <h3>操作方式</h3>
+      <div class="keys">
+        <div><kbd>滑鼠</kbd> 移動瞄準</div>
+        <div><kbd>左鍵</kbd> 發射泡泡</div>
+        <div><kbd>S</kbd> 交換下一發</div>
+        <div><kbd>1</kbd><kbd>2</kbd> 炸彈 / 雷射</div>
+        <div><kbd>P</kbd> 暫停 &nbsp;<kbd>M</kbd> 靜音</div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- 機台 -->
+  <main class="cabinet">
+    <div class="hud">
+      <div class="box score"><small>Score 分數</small><b id="hScore">0</b></div>
+      <div class="box"><small>Level 關卡</small><b id="hLevel">1</b></div>
+      <div class="box"><small>Best 最高</small><b id="hBest">0</b></div>
+      <div class="combo hide" id="combo"><small>COMBO</small><span id="comboN">x2</span></div>
+    </div>
+    <div class="screen" id="screen">
+      <canvas id="game"></canvas>
+      <div class="overlay" id="overlay"></div>
+    </div>
+    <div class="dock">
+      <div class="nextbox" id="nextBox" title="點擊交換 (S)">
+        <small>NEXT</small><canvas id="nextCv" width="88" height="88"></canvas>
+      </div>
+      <button class="pw" id="bombBtn" title="炸彈：炸掉中心與相鄰 6 格 (1)">💣<span class="cnt" id="bombCnt">0</span><small>BOMB</small></button>
+      <button class="pw" id="laserBtn" title="雷射：直線貫穿所有泡泡 (2)">⚡<span class="cnt" id="laserCnt">0</span><small>BEAM</small></button>
+      <span style="flex:1"></span>
+      <button class="ghost" id="pauseBtn" title="暫停 (P)">⏸</button>
+      <button class="ghost" id="soundBtn" title="靜音 (M)">🔊</button>
+    </div>
+  </main>
+
+  <!-- 右欄 -->
+  <aside class="side">
+    <div class="card">
+      <h3>技能</h3>
+      <div class="skill"><span class="ic">💣</span><div><b>深海炸彈</b><p>下一發命中時，炸毀中心與相鄰 6 格。每 <b style="color:var(--gold)">2000</b> 分解鎖 1 個。</p></div></div>
+      <div class="skill"><span class="ic">⚡</span><div><b>貫穿雷射</b><p>沿瞄準方向直射，擊破路徑上全部泡泡。每 <b style="color:var(--gold)">4000</b> 分解鎖 1 個。</p></div></div>
+    </div>
+    <div class="card">
+      <h3>小錦囊</h3>
+      <ul class="tips">
+        <li>三顆以上同色相連即可消除</li>
+        <li>消除後斷開的泡泡會掉落，分數更高</li>
+        <li>連續消除可疊加連擊倍率（最高 x5）</li>
+        <li>泡泡越過紅色危險線就會失敗</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>紀錄</h3>
+      <div class="stat-row"><span>最高分</span><b class="gd" id="rBest">0</b></div>
+      <div class="stat-row"><span>最遠關卡</span><b class="aq" id="rLevel">1</b></div>
+    </div>
+  </aside>
+</div>
+
+<script>
+'use strict';
+/* ================= 基礎 ================= */
+const cv = document.getElementById('game'), ctx = cv.getContext('2d');
+const W=440, H=660, SC=2;
+cv.width = W*SC; cv.height = H*SC;
+
+const S=40, R=20, COLS=11, ROW_H=S*Math.sqrt(3)/2, TOP=16;
+const DANGER_ROW=11, DANGER_Y=TOP+(DANGER_ROW-0.5)*ROW_H+R;
+const SHOOT_Y=H-78, MOUTH=46, SPEED=13;
+
+const COLORS=[
+  {base:'#ff5e5e',hi:'#ffd6cd',lo:'#a82333'},
+  {base:'#ffb43a',hi:'#ffeec2',lo:'#b96a10'},
+  {base:'#8ce04a',hi:'#e6ffd0',lo:'#4c9a1c'},
+  {base:'#31d8c2',hi:'#ccfff4',lo:'#0d8a78'},
+  {base:'#4aa8ff',hi:'#d3ecff',lo:'#1a5cb5'},
+  {base:'#e06bff',hi:'#f6d9ff',lo:'#8a2bc0'},
+];
+
+/* ================= 音效 ================= */
+let ac=null, master=null, muted=false;
+function audio(){ if(!ac){ ac=new (window.AudioContext||window.webkitAudioContext)();
+  master=ac.createGain(); master.gain.value=.5; master.connect(ac.destination);} 
+  if(ac.state==='suspended') ac.resume(); return ac; }
+function beep(f,d,type='sine',v=.3,slide=0){
+  if(muted) return; try{ const a=audio(), o=a.createOscillator(), g=a.createGain();
+  o.type=type; o.frequency.setValueAtTime(f,a.currentTime);
+  if(slide) o.frequency.exponentialRampToValueAtTime(Math.max(30,f+slide),a.currentTime+d);
+  g.gain.setValueAtTime(v,a.currentTime); g.gain.exponentialRampToValueAtTime(.001,a.currentTime+d);
+  o.connect(g); g.connect(master); o.start(); o.stop(a.currentTime+d);}catch(e){} }
+function noise(d,v,fq=1200){
+  if(muted) return; try{ const a=audio(), n=a.sampleRate*d, b=a.createBuffer(1,n,a.sampleRate),
+  dta=b.getChannelData(0); for(let i=0;i<n;i++) dta[i]=(Math.random()*2-1)*(1-i/n);
+  const s=a.createBufferSource(); s.buffer=b; const f=a.createBiquadFilter();
+  f.type='bandpass'; f.frequency.value=fq; f.Q.value=1.2;
+  const g=a.createGain(); g.gain.value=v; s.connect(f); f.connect(g); g.connect(master); s.start();}catch(e){} }
+const sfx={
+  launch:()=>beep(280,.12,'square',.18,220),
+  bounce:()=>beep(130,.08,'triangle',.22,-40),
+  pop:c=>{ noise(.09,.3,900+c*60); beep(480+c*70,.1,'square',.2,320); },
+  drop:()=>beep(360,.3,'sine',.25,-240),
+  combo:c=>{ [523,659,784,1047].slice(0,Math.min(4,c+1)).forEach((f,i)=>setTimeout(()=>beep(f,.14,'triangle',.25),i*70)); },
+  win:()=>[523,659,784,1047,1319].forEach((f,i)=>setTimeout(()=>beep(f,.22,'triangle',.3),i*110)),
+  lose:()=>[392,311,247,175].forEach((f,i)=>setTimeout(()=>beep(f,.3,'sawtooth',.18),i*160)),
+  swap:()=>beep(700,.06,'triangle',.2),
+  power:()=>beep(880,.22,'sine',.25,520),
+  ui:()=>beep(520,.07,'sine',.15),
+};
+
+/* ================= 狀態 ================= */
+let grid=[], state='menu', level=1, score=0, levelScore=0, best=0, bestLevel=1;
+let cur=0, nxt=0, shot=null, pendingPower='normal';
+let combo=0, maxCombo=0, bombs=0, lasers=0;
+let fallers=[], parts=[], texts=[], sparks=[], shakeT=0, shakeMag=0;
+let aimA=-Math.PI/2, t0=performance.now(), lastTs=0;
+try{ best=+localStorage.getItem('bbd_best')||0; bestLevel=+localStorage.getItem('bbd_lv')||1; }catch(e){}
+
+const $=id=>document.getElementById(id);
+const el={score:$('hScore'),level:$('hLevel'),best:$('hBest'),combo:$('combo'),comboN:$('comboN'),
+  stLevel:$('stLevel'),stLeft:$('stLeft'),stLv:$('stLvScore'),rBest:$('rBest'),rLevel:$('rLevel'),
+  bombCnt:$('bombCnt'),laserCnt:$('laserCnt'),bombBtn:$('bombBtn'),laserBtn:$('laserBtn'),
+  overlay:$('overlay'),screen:$('screen'),nextCv:$('nextCv'),nextBox:$('nextBox')};
+
+/* ================= 泡泡貼圖 ================= */
+function makeSprite(c){
+  const cv2=document.createElement('canvas'); cv2.width=cv2.height=S*2;
+  const g=cv2.getContext('2d'), cx=40, cy=40, r=36;
+  const gr=g.createRadialGradient(cx-r*.35,cy-r*.45,r*.12,cx,cy,r);
+  gr.addColorStop(0,c.hi); gr.addColorStop(.5,c.base); gr.addColorStop(1,c.lo);
+  g.fillStyle=gr; g.beginPath(); g.arc(cx,cy,r,0,7); g.fill();
+  g.strokeStyle='rgba(0,0,0,.22)'; g.lineWidth=2; g.beginPath(); g.arc(cx,cy,r-1,0,7); g.stroke();
+  g.fillStyle='rgba(255,255,255,.9)';
+  g.beginPath(); g.ellipse(cx-r*.36,cy-r*.44,r*.2,r*.12,-.6,0,7); g.fill();
+  g.fillStyle='rgba(255,255,255,.3)';
+  g.beginPath(); g.arc(cx+r*.3,cy+r*.34,r*.09,0,7); g.fill();
+  return cv2;
+}
+const sprites=COLORS.map(makeSprite);
+const bombSpr=(()=>{const c=document.createElement('canvas');c.width=c.height=80;const g=c.getContext('2d');
+  const gr=g.createRadialGradient(28,26,4,40,40,36);
+  gr.addColorStop(0,'#5a6478');gr.addColorStop(.55,'#232a38');gr.addColorStop(1,'#0d1119');
+  g.fillStyle=gr;g.beginPath();g.arc(40,40,36,0,7);g.fill();
+  g.strokeStyle='rgba(255,194,71,.8)';g.lineWidth=3;g.beginPath();g.arc(40,40,36,0,7);g.stroke();
+  g.strokeStyle='#ffc247';g.lineWidth=4;g.beginPath();g.moveTo(40,6);g.quadraticCurveTo(46,-2,52,2);g.stroke();
+  g.fillStyle='#fff';g.beginPath();g.arc(53,1,3,0,7);g.fill();
+  g.fillStyle='rgba(255,255,255,.5)';g.beginPath();g.ellipse(28,26,7,4,-.6,0,7);g.fill();return c;})();
+const laserSpr=(()=>{const c=document.createElement('canvas');c.width=c.height=80;const g=c.getContext('2d');
+  const gr=g.createRadialGradient(40,40,2,40,40,36);
+  gr.addColorStop(0,'#ffffff');gr.addColorStop(.4,'#aef4ff');gr.addColorStop(1,'rgba(77,166,255,0)');
+  g.fillStyle=gr;g.beginPath();g.arc(40,40,36,0,7);g.fill();
+  g.strokeStyle='rgba(255,255,255,.9)';g.lineWidth=2;g.beginPath();g.arc(40,40,14,0,7);g.stroke();return c;})();
+
+/* ================= 網格 ================= */
+const inB=(r,c)=> r>=0 && c>=0 && c<(r%2?COLS-1:COLS);
+function cellCenter(r,c){ return {x:(c+(r%2?.5:0))*S+R, y:TOP+r*ROW_H+R}; }
+function neighbors(r,c){
+  const d = r%2 ? [[0,-1],[0,1],[-1,0],[-1,1],[1,0],[1,1]]
+                : [[0,-1],[0,1],[-1,-1],[-1,0],[1,-1],[1,0]];
+  return d.map(([a,b])=>[r+a,c+b]).filter(([a,b])=>inB(a,b));
+}
+function totalBubbles(){ let n=0; for(const row of grid) for(const v of row) if(v!==-1) n++; return n; }
+function activeCols(){ const s=new Set(); for(const row of grid) for(const v of row) if(v!==-1) s.add(v); return [...s]; }
+function maxRow(){ let m=-1; for(let r=0;r<grid.length;r++) for(const v of grid[r]) if(v!==-1) m=Math.max(m,r); return m; }
+
+function genLevel(lv){
+  const nC=Math.min(3+lv,6), nR=Math.min(4+Math.ceil(lv/2),8);
+  grid=[];
+  for(let r=0;r<nR;r++){
+    const row=[];
+    for(let c=0;c<(r%2?COLS-1:COLS);c++)
+      row.push((c>0&&Math.random()<.35)?row[c-1]:Math.floor(Math.random()*nC));
+    grid.push(row);
+  }
+}
+function pickBubbles(){
+  const pool=activeCols().length?activeCols():[0,1,2];
+  cur=pool[Math.floor(Math.random()*pool.length)];
+  nxt=pool[Math.floor(Math.random()*pool.length)];
+}
+
+/* ================= 判定 ================= */
+function flood(r,c,col){
+  const seen=new Set([r+','+c]), out=[[r,c]], st=[[r,c]];
+  while(st.length){ const [cr,cc]=st.pop();
+    for(const [nr,nc] of neighbors(cr,cc)){ const k=nr+','+nc;
+      if(seen.has(k)||!grid[nr]||grid[nr][nc]!==col) continue;
+      seen.add(k); out.push([nr,nc]); st.push([nr,nc]); } }
+  return out;
+}
+function findFloaters(){
+  const seen=new Set(), st=[];
+  if(grid[0]) for(let c=0;c<COLS;c++) if(grid[0][c]!==-1){ seen.add('0,'+c); st.push([0,c]); }
+  while(st.length){ const [r,c]=st.pop();
+    for(const [nr,nc] of neighbors(r,c)){ const k=nr+','+nc;
+      if(seen.has(k)||!grid[nr]||grid[nr][nc]===-1) continue;
+      seen.add(k); st.push([nr,nc]); } }
+  const out=[];
+  for(let r=0;r<grid.length;r++) for(let c=0;c<grid[r].length;c++)
+    if(grid[r][c]!==-1 && !seen.has(r+','+c)) out.push([r,c]);
+  return out;
+}
+function bestCell(x,y){
+  let best=null,bd=1e18;
+  for(let r=0;r<=grid.length;r++){
+    const len=r%2?COLS-1:COLS;
+    for(let c=0;c<len;c++){
+      if(grid[r]&&grid[r][c]!==-1) continue;
+      const p=cellCenter(r,c), d=(p.x-x)**2+(p.y-y)**2;
+      if(d<bd){bd=d;best=[r,c];}
+    }
+  }
+  return best;
+}
+
+/* ================= 特效 ================= */
+function burst(x,y,col,n=10){
+  for(let i=0;i<n;i++){ const a=Math.random()*7, sp=1+Math.random()*3.4;
+    parts.push({x,y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp-1,life:1,
+      col:Math.random()<.85?COLORS[col].base:'#ffffff',size:2+Math.random()*3.5}); }
+}
+function ftext(x,y,txt,col,size=18){
+  texts.push({x,y,txt,col,size,life:1});
+  if(texts.length>14) texts.shift();
+}
+function shake(m){ shakeMag=Math.max(shakeMag,m); shakeT=14; }
+
+/* ================= 發射與解決 ================= */
+function fire(){
+  if(state!=='playing'||shot) return;
+  audio();
+  const type=pendingPower; pendingPower='normal'; syncDock();
+  const mx=W/2+Math.cos(aimA)*MOUTH, my=SHOOT_Y+Math.sin(aimA)*MOUTH;
+  shot={x:mx,y:my,dx:Math.cos(aimA),dy:Math.sin(aimA),col:cur,type,trail:[]};
+  sfx.launch();
+  if(type!=='normal'){ cur=nxt; nxt=poolPick(); drawNext(); }
+}
+function poolPick(){ const p=activeCols().length?activeCols():[0,1,2]; return p[Math.floor(Math.random()*p.length)]; }
+
+function stepShot(){
+  const sub=4, ds=SPEED/sub;
+  for(let i=0;i<sub;i++){
+    shot.x+=shot.dx*ds; shot.y+=shot.dy*ds;
+    if(shot.x<R){shot.x=R; shot.dx=-shot.dx; sfx.bounce();}
+    if(shot.x>W-R){shot.x=W-R; shot.dx=-shot.dx; sfx.bounce();}
+    if(shot.type==='laser'){
+      shot.trail.push([shot.x,shot.y]); if(shot.trail.length>16) shot.trail.shift();
+      let hit=null;
+      for(let r=0;r<grid.length;r++) for(let c=0;c<grid[r].length;c++){
+        if(grid[r][c]===-1) continue;
+        const p=cellCenter(r,c);
+        if((p.x-shot.x)**2+(p.y-shot.y)**2 < (S*.8)**2){ hit=[r,c]; break; }
+      }
+      if(hit){ const p=cellCenter(hit[0],hit[1]);
+        burst(p.x,p.y,grid[hit[0]][hit[1]]); grid[hit[0]][hit[1]]=-1; sfx.pop(combo); }
+      if(shot.y<TOP-30){ resolveLaser(); return; }
+    } else {
+      if(shot.y-R*.9<=TOP){ snapShot(); return; }
+      let hit=false;
+      for(let r=0;r<grid.length;r++) for(let c=0;c<grid[r].length;c++){
+        if(grid[r][c]===-1) continue;
+        const p=cellCenter(r,c);
+        if((p.x-shot.x)**2+(p.y-shot.y)**2 < (S*.8)**2){ hit=true; break; }
+      }
+      if(hit){ snapShot(); return; }
+    }
+  }
+}
+function snapShot(){
+  const b=bestCell(shot.x,shot.y); if(!b) return;
+  const [r,c]=b;
+  grid[r]=grid[r]||Array(r%2?COLS-1:COLS).fill(-1);
+  grid[r][c]=shot.col;
+  const col=shot.col, p=cellCenter(r,c);
+  let popped=0, drop=0, popScore=0;
+  if(shot.type==='bomb'){
+    const cells=[[r,c],...neighbors(r,c).filter(([a,b])=>grid[a][b]!==-1)];
+    for(const [a,b] of cells){ const cc=grid[a][b]; if(cc===-1) continue;
+      grid[a][b]=-1; const q=cellCenter(a,b); burst(q.x,q.y,cc,12); popped++; }
+    popScore=popped*10;
+    combo++; maxCombo=Math.max(maxCombo,combo);
+    shake(6); sfx.pop(combo); sfx.power();
+    ftext(p.x,p.y-14,'💥 +'+popScore*mult(),'#ffc247',20);
+  } else {
+    const cl=flood(r,c,col);
+    if(cl.length>=3){
+      for(const [a,b] of cl){ const q=cellCenter(a,b); burst(q.x,q.y,col); grid[a][b]=-1; }
+      popped=cl.length;
+      popScore=popped*10+Math.max(0,popped-3)*5;
+      combo++; maxCombo=Math.max(maxCombo,combo);
+      sfx.pop(combo); if(combo>=2) sfx.combo(combo);
+      if(popped>=6) shake(5);
+      ftext(p.x,p.y-14,'+'+popScore*mult(),COLORS[col].hi,18);
+    } else { combo=0; beep(220,.06,'sine',.12); }
+  }
+  // 掉落
+  const fl=findFloaters();
+  if(fl.length){
+    for(const [a,b] of fl){ const cc=grid[a][b], q=cellCenter(a,b);
+      grid[a][b]=-1;
+      fallers.push({x:q.x,y:q.y,col:cc,vy:-1-Math.random(),vx:(Math.random()-.5)*1.6});
+      drop++; }
+    sfx.drop(); shake(4);
+    ftext(W/2,240,'掉落 +'+drop*20*mult(),'#ffc247',22);
+  }
+  addScore((popScore+drop*20)*mult());
+  afterShot();
+  shot=null;
+}
+function resolveLaser(){
+  const n=shot.hitN||0;
+  // 統計：以 trail 沿途已消的數量（簡化：以本發消除計分）
+  const cnt=shot.popped;
+  if(cnt>0){ combo++; maxCombo=Math.max(maxCombo,combo); addScore(cnt*15*mult());
+    ftext(shot.x,80,'雷射 +'+cnt*15*mult(),'#aef4ff',20); sfx.combo(combo); }
+  else combo=0;
+  const fl=findFloaters();
+  if(fl.length){ for(const [a,b] of fl){ const cc=grid[a][b], q=cellCenter(a,b);
+      grid[a][b]=-1; fallers.push({x:q.x,y:q.y,col:cc,vy:-1,vx:(Math.random()-.5)*1.6}); }
+    addScore(fl.length*20*mult()); sfx.drop(); }
+  afterShot(); shot=null;
+}
+function mult(){ return Math.min(combo,5); }
+function addScore(n){
+  if(n<=0) return;
+  score+=n; levelScore+=n;
+  while(levelScore>=2000){ levelScore-=2000;
+    if(bombs<3){bombs++; ftext(W/2,H-150,'獲得炸彈 💣','#ffc247',18); sfx.power();}
+    else { score+=100; ftext(W/2,H-150,'+100','#ffc247',14);} }
+  while(score>= (lasers*2+1)*4000){ if(lasers<2){lasers++; ftext(W/2,H-190,'獲得雷射 ⚡','#aef4ff',18); sfx.power();} }
+  if(score>best){ best=score; try{localStorage.setItem('bbd_best',best);}catch(e){} }
+  syncHUD();
+}
+function afterShot(){
+  pickBubbles(); drawNext();
+  if(totalBubbles()===0){
+    state='clearing';
+    const bonus=300+level*100;
+    setTimeout(()=>{ score+=bonus;
+      sfx.win(); showClear(bonus); syncHUD(); },700);
+  } else if(maxRow()>=DANGER_ROW){
+    state='dying'; shake(8); sfx.lose();
+    setTimeout(showOver,900);
+  }
+  syncHUD();
+}
+
+/* ================= 流程 ================= */
+function startGame(){
+  score=0; level=1; levelScore=0; combo=0; maxCombo=0;
+  bombs=1; lasers=0; pendingPower='normal'; shot=null;
+  fallers=[]; parts=[]; texts=[]; sparks=[];
+  genLevel(1); pickBubbles(); drawNext();
+  state='playing'; hideOverlay(); syncHUD(); syncDock(); sfx.ui();
+}
+function nextLevel(){
+  level++; levelScore=0; combo=0; maxCombo=0;
+  if(level>bestLevel){ bestLevel=level; try{localStorage.setItem('bbd_lv',level);}catch(e){} }
+  genLevel(level); pickBubbles(); drawNext();
+  state='playing'; hideOverlay(); syncHUD(); sfx.ui();
+}
+function togglePause(){
+  if(state==='playing'){ state='paused'; showPause(); }
+  else if(state==='paused'){ state='playing'; hideOverlay(); }
+  sfx.ui();
+}
+function swap(){
+  if(state!=='playing') return;
+  [cur,nxt]=[nxt,cur]; drawNext(); sfx.swap();
+}
+function usePower(t){
+  if(state!=='playing'||shot) return;
+  if(t==='bomb'&&bombs>0){ bombs--; pendingPower='bomb'; sfx.power(); }
+  else if(t==='laser'&&lasers>0){ lasers--; pendingPower='laser'; sfx.power(); }
+  syncDock();
+}
+
+/* ================= 覆蓋層 ================= */
+function bubField(n=8){
+  let h='';
+  for(let i=0;i<n;i++){ const s=10+Math.random()*26;
+    h+=`<span class="float-bub" style="left:${5+Math.random()*90}%;bottom:-30px;width:${s}px;height:${s}px;animation-duration:${4+Math.random()*5}s;animation-delay:-${Math.random()*6}s"></span>`; }
+  return h;
+}
+function showOverlay(html){ el.overlay.innerHTML=html; el.overlay.classList.add('show'); }
+function hideOverlay(){ el.overlay.classList.remove('show'); }
+function showStart(){
+  showOverlay(`<div class="ov-card">${bubField(10)}
+    <div class="ov-title"><span class="t1">泡</span><span class="t2">泡</span><span class="t3">龍</span></div>
+    <div class="ov-sub">Bubble Dragon</div>
+    <p class="ov-desc">瞄準發射泡泡，三顆以上同色相連即可消除。<br>讓斷裂的泡泡墜入深海，別讓它們越過危險線！</p>
+    <div class="btnrow"><button class="btn" id="ovStart">開始遊戲</button></div>
+    <div class="mini-hints"><span>🖱 瞄準</span><span>👆 發射</span><span>S 交換</span><span>1/2 技能</span></div>
+  </div>`);
+  $('ovStart').onclick=()=>{ audio(); startGame(); };
+}
+function showPause(){
+  showOverlay(`<div class="ov-card">${bubField(5)}
+    <div class="ov-title" style="font-size:44px"><span class="t2">暫停中</span></div>
+    <div class="ov-sub">Paused</div>
+    <div class="btnrow"><button class="btn" id="ovGo">繼續遊戲</button>
+    <button class="btn alt" id="ovRe">重新開始</button></div></div>`);
+  $('ovGo').onclick=togglePause; $('ovRe').onclick=startGame;
+}
+function showClear(bonus){
+  state='clear';
+  showOverlay(`<div class="ov-card">${bubField(9)}
+    <div class="ov-title"><span class="t2">清空成功</span></div>
+    <div class="ov-sub">Level ${level} Clear</div>
+    <div class="ov-stats">
+      <div><small>總分</small><b>${score}</b></div>
+      <div><small>最高連擊</small><b>x${maxCombo||1}</b></div>
+      <div><small>清空獎勵</small><b>+${bonus}</b></div>
+    </div>
+    <div class="btnrow"><button class="btn" id="ovNext">下一關 →</button></div></div>`);
+  $('ovNext').onclick=nextLevel;
+}
+function showOver(){
+  state='over';
+  const rec = score>=best && score>0;
+  showOverlay(`<div class="ov-card">${bubField(6)}
+    <div class="ov-title" style="font-size:46px"><span class="t1">遊戲結束</span></div>
+    <div class="ov-sub">Game Over</div>
+    ${rec?`<div class="newrec">🏆 新紀錄！</div><br>`:''}
+    <div class="ov-stats">
+      <div><small>最終分數</small><b>${score}</b></div>
+      <div><small>抵達關卡</small><b>${level}</b></div>
+      <div><small>歷史最高</small><b>${best}</b></div>
+    </div>
+    <div class="btnrow"><button class="btn" id="ovRe">再玩一次</button></div></div>`);
+  $('ovRe').onclick=startGame; syncHUD();
+}
+
+/* ================= HUD ================= */
+function syncHUD(){
+  const set=(e,v)=>{ if(e.textContent!=String(v)){ e.textContent=v;
+    e.classList.remove('bump'); void e.offsetWidth; e.classList.add('bump'); } };
+  set(el.score,score); set(el.level,level); set(el.best,best);
+  set(el.stLevel,level); set(el.stLeft,totalBubbles()); set(el.stLv,levelScore);
+  set(el.rBest,best); set(el.rLevel,bestLevel);
+  set(el.bombCnt,bombs); set(el.laserCnt,lasers);
+  if(combo>=2){ el.combo.classList.remove('hide'); el.comboN.textContent='x'+Math.min(combo,5);
+    el.combo.classList.remove('pop'); void el.combo.offsetWidth; el.combo.classList.add('pop'); }
+  else el.combo.classList.add('hide');
+  el.screen.classList.toggle('danger', state==='playing'&&maxRow()>=9);
+}
+function syncDock(){
+  el.bombBtn.disabled = bombs===0 || pendingPower==='bomb';
+  el.laserBtn.disabled = lasers===0 || pendingPower==='laser';
+  el.bombBtn.classList.toggle('ready',pendingPower==='bomb');
+  el.laserBtn.classList.toggle('ready',pendingPower==='laser');
+}
+function drawNext(){
+  const g=el.nextCv.getContext('2d'); g.clearRect(0,0,88,88);
+  g.drawImage(sprites[nxt],0,0,88,88);
+}
+
+/* ================= 渲染 ================= */
+function drawFieldBg(){
+  const g=ctx.createLinearGradient(0,0,0,H);
+  g.addColorStop(0,'#0b2c3e'); g.addColorStop(.55,'#07202e'); g.addColorStop(1,'#051622');
+  ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
+  const rg=ctx.createRadialGradient(W/2,-60,20,W/2,-60,420);
+  rg.addColorStop(0,'rgba(62,230,196,.14)'); rg.addColorStop(1,'transparent');
+  ctx.fillStyle=rg; ctx.fillRect(0,0,W,300);
+  ctx.fillStyle='rgba(120,220,255,.05)';
+  for(let r=0;r<=11;r++) for(let c=0;c<(r%2?COLS-1:COLS);c++){
+    const p=cellCenter(r,c); ctx.beginPath(); ctx.arc(p.x,p.y,2,0,7); ctx.fill(); }
+}
+function drawDanger(){
+  const near = maxRow()>=9 && (state==='playing'||state==='dying');
+  const pulse = near ? .35+.3*Math.sin((performance.now()-t0)/180) : .3;
+  ctx.save(); ctx.setLineDash([10,8]); ctx.lineWidth=2;
+  ctx.strokeStyle=`rgba(255,90,90,${pulse})`;
+  ctx.shadowColor='rgba(255,90,90,.6)'; ctx.shadowBlur=near?12:4;
+  ctx.beginPath(); ctx.moveTo(8,DANGER_Y); ctx.lineTo(W-8,DANGER_Y); ctx.stroke();
+  ctx.restore();
+  ctx.font='700 10px "Noto Sans TC"'; ctx.fillStyle='rgba(255,120,120,.55)';
+  ctx.textAlign='right'; ctx.fillText('危 險 線',W-12,DANGER_Y-6);
+}
+function drawGrid(){
+  for(let r=0;r<grid.length;r++) for(let c=0;c<grid[r].length;c++){
+    if(grid[r][c]===-1) continue;
+    const p=cellCenter(r,c);
+    ctx.drawImage(sprites[grid[r][c]],p.x-R,p.y-R,S,S);
+  }
+}
+function drawAim(){
+  if(state!=='playing'||shot) return;
+  let x=W/2+Math.cos(aimA)*MOUTH, y=SHOOT_Y+Math.sin(aimA)*MOUTH;
+  let dx=Math.cos(aimA), dy=Math.sin(aimA);
+  const pts=[]; let stop=null;
+  for(let i=0;i<260;i++){
+    x+=dx*5; y+=dy*5;
+    if(x<R){x=R;dx=-dx;} if(x>W-R){x=W-R;dx=-dx;}
+    if(y<TOP+R){ stop=[x,y]; break; }
+    let hit=false;
+    for(let r=0;r<grid.length;r++) for(let c=0;c<grid[r].length;c++){
+      if(grid[r][c]===-1) continue;
+      const p=cellCenter(r,c);
+      if((p.x-x)**2+(p.y-y)**2<(S*.8)**2){ hit=true; break; }
+    }
+    if(hit){ stop=[x,y]; break; }
+    if(i%3===0) pts.push([x,y]);
+  }
+  pts.forEach(([px,py],i)=>{
+    ctx.globalAlpha=.5*(1-i/pts.length)+.08;
+    ctx.fillStyle='#bfefff'; ctx.beginPath(); ctx.arc(px,py,3,0,7); ctx.fill();
+  });
+  ctx.globalAlpha=1;
+  if(stop){
+    const b=bestCell(stop[0],stop[1]);
+    if(b){ const p=cellCenter(b[0],b[1]);
+      const pl=.5+.3*Math.sin((performance.now()-t0)/220);
+      ctx.strokeStyle= pendingPower==='bomb' ? `rgba(255,194,71,${pl})`
+        : pendingPower==='laser' ? `rgba(174,244,255,${pl})`
+        : `rgba(255,255,255,${pl})`;
+      ctx.lineWidth=2; ctx.setLineDash([6,6]);
+      ctx.beginPath(); ctx.arc(p.x,p.y,R-5,0,7); ctx.stroke(); ctx.setLineDash([]); }
+  }
+}
+function drawShot(){
+  if(!shot) return;
+  if(shot.type==='laser'){
+    ctx.save(); ctx.lineCap='round';
+    shot.trail.forEach(([x,y],i)=>{
+      ctx.strokeStyle=`rgba(174,244,255,${i/shot.trail.length*.8})`;
+      ctx.lineWidth=6*i/shot.trail.length;
+      if(i) ctx.beginPath(), ctx.moveTo(shot.trail[i-1][0],shot.trail[i-1][1]), ctx.lineTo(x,y), ctx.stroke();
+    });
+    ctx.restore();
+    ctx.drawImage(laserSpr,shot.x-R,shot.y-R,S,S);
+  } else
+    ctx.drawImage(shot.type==='bomb'?bombSpr:sprites[shot.col],shot.x-R,shot.y-R,S,S);
+}
+function drawShooter(){
+  const t=(performance.now()-t0)/1000;
+  const bob=Math.sin(t*2)*2.5, x=W/2, y=SHOOT_Y+bob;
+  // 平台
+  ctx.fillStyle='rgba(0,0,0,.35)';
+  ctx.beginPath(); ctx.ellipse(x,y+46,52,12,0,0,7); ctx.fill();
+  ctx.save(); ctx.translate(x,y);
+  // 旋轉炮管
+  ctx.save(); ctx.rotate(aimA+Math.PI/2);
+  const bg=ctx.createLinearGradient(-14,0,14,0);
+  bg.addColorStop(0,'#2e8f4a'); bg.addColorStop(.5,'#5fd06b'); bg.addColorStop(1,'#2e8f4a');
+  ctx.fillStyle=bg;
+  rr(ctx,-14,-46,28,40,10); ctx.fill();
+  ctx.strokeStyle='rgba(0,40,20,.5)'; ctx.lineWidth=2; rr(ctx,-14,-46,28,40,10); ctx.stroke();
+  ctx.restore();
+  // 身體
+  ctx.fillStyle='#2f9e52';
+  ctx.beginPath(); ctx.ellipse(0,26,36,20,0,0,7); ctx.fill();
+  // 頭
+  const hg=ctx.createRadialGradient(-8,-8,4,0,4,34);
+  hg.addColorStop(0,'#8ce87f'); hg.addColorStop(1,'#3aa85a');
+  ctx.fillStyle=hg;
+  ctx.beginPath(); ctx.ellipse(0,4,31,27,0,0,7); ctx.fill();
+  ctx.strokeStyle='rgba(10,60,30,.55)'; ctx.lineWidth=2.5;
+  ctx.beginPath(); ctx.ellipse(0,4,31,27,0,0,7); ctx.stroke();
+  // 角
+  ctx.fillStyle='#ffc247';
+  tri(ctx,-24,-14,-34,-32,-12,-20); tri(ctx,24,-14,34,-32,12,-20);
+  // 眼睛
+  const px=Math.cos(aimA)*2.5, py=Math.sin(aimA)*2.5;
+  for(const s of [-1,1]){
+    ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(11*s,-4,7.5,0,7); ctx.fill();
+    ctx.fillStyle='#123'; ctx.beginPath(); ctx.arc(11*s+px,-4+py,3.4,0,7); ctx.fill();
+    ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(11*s+px-1,-5.5+py,1.2,0,7); ctx.fill();
+  }
+  // 腮紅
+  ctx.fillStyle='rgba(255,150,170,.5)';
+  for(const s of [-1,1]){ ctx.beginPath(); ctx.ellipse(19*s,7,5,3.4,0,0,7); ctx.fill(); }
+  // 嘴裡泡泡
+  ctx.save(); ctx.rotate(aimA+Math.PI/2);
+  const spr = pendingPower==='bomb'?bombSpr : pendingPower==='laser'?laserSpr : sprites[cur];
+  ctx.drawImage(spr,-R,-MOUTH-R,S,S);
+  if(pendingPower!=='normal'){
+    ctx.font='800 11px "Baloo 2"'; ctx.fillStyle='#ffc247'; ctx.textAlign='center';
+    ctx.fillText(pendingPower==='bomb'?'BOMB':'BEAM',0,-MOUTH-30);
+  }
+  ctx.restore();
+  ctx.restore();
+}
+function rr(c,x,y,w,h,r){ c.beginPath(); c.moveTo(x+r,y);
+  c.arcTo(x+w,y,x+w,y+h,r); c.arcTo(x+w,y+h,x,y+h,r);
+  c.arcTo(x,y+h,x,y,r); c.arcTo(x,y,x+w,y,r); c.closePath(); }
+function tri(c,a,b,d,e,f,g){ c.beginPath(); c.moveTo(a,b); c.lineTo(d,e); c.lineTo(f,g); c.closePath(); c.fill(); }
+
+function render(){
+  ctx.setTransform(SC,0,0,SC,0,0);
+  ctx.clearRect(0,0,W,H);
+  let sx=0,sy=0;
+  if(shakeT>0){ const k=shakeT/14; sx=(Math.random()*2-1)*shakeMag*k; sy=(Math.random()*2-1)*shakeMag*k; shakeT--; }
+  else shakeMag=0;
+  ctx.save(); ctx.translate(sx,sy);
+  drawFieldBg(); drawDanger(); drawGrid(); drawAim(); drawShot();
+  for(const f of fallers) ctx.drawImage(sprites[f.col],f.x-R,f.y-R,S,S);
+  for(const p of parts){ ctx.globalAlpha=Math.max(0,p.life);
+    ctx.fillStyle=p.col; ctx.beginPath(); ctx.arc(p.x,p.y,p.size*p.life,0,7); ctx.fill(); }
+  ctx.globalAlpha=1;
+  for(const t of texts){ ctx.globalAlpha=Math.max(0,t.life);
+    ctx.font=`800 ${t.size}px "Baloo 2","Noto Sans TC"`; ctx.textAlign='center';
+    ctx.fillStyle=t.col; ctx.shadowColor='rgba(0,0,0,.6)'; ctx.shadowBlur=6;
+    ctx.fillText(t.txt,t.x,t.y); ctx.shadowBlur=0; }
+  ctx.globalAlpha=1;
+  drawShooter();
+  ctx.restore();
+}
+
+/* ================= 更新 ================= */
+function update(){
+  if(state==='playing'||state==='clearing'||state==='dying'){
+    if(shot) stepShot();
+    for(const f of fallers){ f.vy+=.32; f.y+=f.vy; f.x+=f.vx; }
+    fallers=fallers.filter(f=>f.y<H+50);
+    for(const p of parts){ p.vy+=.12; p.x+=p.vx; p.y+=p.vy; p.life-=.03; }
+    parts=parts.filter(p=>p.life>0);
+    for(const t of texts){ t.y-=.7; t.life-=.016; }
+    texts=texts.filter(t=>t.life>0);
+    if(Math.random()<.05 && totalBubbles()>0){
+      const cells=[];
+      for(let r=0;r<grid.length;r++) for(let c=0;c<grid[r].length;c++) if(grid[r][c]!==-1) cells.push([r,c]);
+      if(cells.length){ const [r,c]=cells[Math.floor(Math.random()*cells.length)];
+        const p=cellCenter(r,c); sparks.push({x:p.x+(Math.random()-.5)*10,y:p.y+(Math.random()-.5)*10,life:1}); }
+    }
+    for(const s of sparks) s.life-=.06;
+    sparks=sparks.filter(s=>s.life>0);
+    for(const s of sparks){ ctx.save(); ctx.globalAlpha=s.life*.8;
+      ctx.strokeStyle='#fff'; ctx.lineWidth=1.5;
+      ctx.beginPath(); ctx.moveTo(s.x-4,s.y); ctx.lineTo(s.x+4,s.y);
+      ctx.moveTo(s.x,s.y-4); ctx.lineTo(s.x,s.y+4); ctx.stroke(); ctx.restore(); }
+  }
+}
+
+/* ================= 背景浮游生物 ================= */
+const bgc=document.getElementById('bg'), bgx=bgc.getContext('2d');
+let plank=[];
+function sizeBg(){ bgc.width=innerWidth; bgc.height=innerHeight;
+  plank=Array.from({length:Math.min(70,innerWidth/16)},()=>({
+    x:Math.random()*bgc.width, y:Math.random()*bgc.height,
+    r:1+Math.random()*3, sp:.15+Math.random()*.5, ph:Math.random()*7,
+    a:.08+Math.random()*.25, big:Math.random()<.12 })); }
+sizeBg(); addEventListener('resize',sizeBg);
+function renderBg(ts){
+  bgx.clearRect(0,0,bgc.width,bgc.height);
+  for(const p of plank){
+    p.y-=p.sp; p.x+=Math.sin(ts/1400+p.ph)*.25;
+    if(p.y<-10){ p.y=bgc.height+10; p.x=Math.random()*bgc.width; }
+    if(p.big){
+      const g=bgx.createRadialGradient(p.x,p.y,0,p.x,p.y,p.r*14);
+      g.addColorStop(0,`rgba(62,230,196,${p.a*.5})`); g.addColorStop(1,'transparent');
+      bgx.fillStyle=g; bgx.beginPath(); bgx.arc(p.x,p.y,p.r*14,0,7); bgx.fill();
+    } else {
+      bgx.fillStyle=`rgba(150,235,255,${p.a})`;
+      bgx.beginPath(); bgx.arc(p.x,p.y,p.r,0,7); bgx.fill();
+    }
+  }
+}
+
+/* ================= 輸入 ================= */
+function canvasPos(e){
+  const r=cv.getBoundingClientRect();
+  return {x:(e.clientX-r.left)/r.width*W, y:(e.clientY-r.top)/r.height*H};
+}
+function updateAim(p){
+  let a=Math.atan2(p.y-SHOOT_Y,p.x-W/2);
+  if(a>0) a = p.x<W/2 ? -.15 : -Math.PI+.15;
+  aimA=Math.min(-.15,Math.max(-Math.PI+.15,a));
+}
+cv.addEventListener('pointermove',e=>{ const p=canvasPos(e); updateAim(p); });
+cv.addEventListener('pointerdown',e=>{ const p=canvasPos(e); updateAim(p); audio(); fire(); });
+el.nextBox.addEventListener('click',swap);
+el.bombBtn.addEventListener('click',()=>usePower('bomb'));
+el.laserBtn.addEventListener('click',()=>usePower('laser'));
+$('pauseBtn').addEventListener('click',togglePause);
+$('soundBtn').addEventListener('click',()=>{ muted=!muted;
+  $('soundBtn').textContent=muted?'🔇':'🔊'; sfx.ui(); });
+addEventListener('keydown',e=>{
+  const k=e.key.toLowerCase();
+  if(k==='s') swap();
+  else if(k==='1') usePower('bomb');
+  else if(k==='2') usePower('laser');
+  else if(k==='p'||k==='escape') togglePause();
+  else if(k==='m'){ muted=!muted; $('soundBtn').textContent=muted?'🔇':'🔊'; }
+  else if(k==='r'&&(state==='over'||state==='paused')) startGame();
+});
+
+/* ================= 主迴圈 ================= */
+function loop(ts){
+  requestAnimationFrame(loop);
+  update(); render(); renderBg(ts);
+}
+requestAnimationFrame(loop);
+
+/* 初始化 */
+genLevel(1); pickBubbles(); drawNext();
+el.best.textContent=best; el.rBest.textContent=best; el.rLevel.textContent=bestLevel;
+syncHUD(); syncDock(); showStart();
+</script>
+</body>
+</html>
