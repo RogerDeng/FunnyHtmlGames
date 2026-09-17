@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>小精靈 PAC-MAN</title>
+    <style>
+        body {
+            margin: 0;
+            background: #0a0a14;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            font-family: 'Courier New', monospace;
+            color: #fff
+        }
+
+        h1 {
+            color: #ffe600;
+            letter-spacing: 10px;
+            margin: 10px 0 6px;
+            text-shadow: 0 0 12px #ffe60088;
+            font-size: 26px
+        }
+
+        #hud {
+            display: flex;
+            gap: 20px;
+            width: 460px;
+            max-width: 92vw;
+            justify-content: space-between;
+            padding: 4px;
+            color: #7df;
+            font-size: 15px
+        }
+
+        #hud b {
+            color: #ffe600
+        }
+
+        canvas {
+            border: 3px solid #2121de;
+            border-radius: 6px;
+            box-shadow: 0 0 26px #2121de55;
+            background: #000;
+            max-width: 92vw
+        }
+
+        .life {
+            color: #ffe600;
+            font-size: 17px;
+            margin-right: 2px
+        }
+
+        #tip {
+            color: #8899cc;
+            font-size: 12px;
+            margin-top: 10px;
+            text-align: center
+        }
+    </style>
+</head>
+
+<body>
+    <h1>PAC-MAN</h1>
+    <div id="hud">
+        <span>得分 <b id="score">0</b></span>
+        <span>最高 <b id="best">0</b></span>
+        <span>過關 <b id="level">1</b></span>
+        <span id="lives"></span>
+    </div>
+    <canvas id="game"></canvas>
+    <div id="tip">方向鍵 / WASD 移動 ・ Enter 開始/重來 ・ P 暫停 ・ 手機可滑動</div>
+    <script>
+        'use strict';
+        const TS = 24, COLS = 19, ROWS = 21;
+        const canvas = document.getElementById('game');
+        canvas.width = COLS * TS; canvas.height = ROWS * TS;
+        const ctx = canvas.getContext('2d');
+
+        const DEFS = [
+            ["########", "#"], ["o..#....", "."], [".##.##.#", "#"], ["........", "."],
+            [".#....#.", "."], [".#.##.#.", "."], [".#....#.", "."], ["..##..##", " "],
+            ["........", " "], ["......##", " "], ["......# ", " "], ["......##", "#"],
+            ["..##..##", "."], [".#.##.#.", "."], [".#....#.", "."], ["........", "."],
+            [".##.##.#", "#"], ["o..#....", "."], ["........", "."], [".##.##.#", "#"],
+            ["########", "#"]];
+
+        let grid = [], pellets = new Set(), powers = new Set();
+        function buildLevel() {
+            grid = DEFS.map(([L, C]) => "#" + L + C + [...L].reverse().join("") + "#");
+            pellets.clear(); powers.clear();
+            for (let y = 0; y < ROWS; y++)for (let x = 0; x < COLS; x++) {
+                const c = grid[y][x];
+                if (c === '.') pellets.add(x + ',' + y);
+                if (c === 'o') { pellets.add(x + ',' + y); powers.add(x + ',' + y); }
+            }
+        }
+        const isWall = (x, y) => x < 0 || y < 0 || x >= COLS || y >= ROWS || grid[y][x] === '#';
+
+        let wallPath = null;
+        function buildWallPath() {
+            wallPath = new Path2D();
+            for (let y = 0; y < ROWS; y++)for (let x = 0; x < COLS; x++) {
+                if (grid[y][x] !== '#') continue;
+                const X = x * TS, Y = y * TS;
+                if (!isWall(x - 1, y)) { wallPath.moveTo(X, Y); wallPath.lineTo(X, Y + TS); }
+                if (!isWall(x + 1, y)) { wallPath.moveTo(X + TS, Y); wallPath.lineTo(X + TS, Y + TS); }
+                if (!isWall(x, y - 1)) { wallPath.moveTo(X, Y); wallPath.lineTo(X + TS, Y); }
+                if (!isWall(x, y + 1)) { wallPath.moveTo(X, Y + TS); wallPath.lineTo(X + TS, Y + TS); }
+            }
+        }
+
+        const DV = [{ x: 0, y: -1 }, { x: 1, y: 0 }, { x: 0, y: 1 }, { x: -1, y: 0 }];
+        const CTR = (g) => g * TS + TS / 2;
+        const cellOf = (v) => Math.round((v - TS / 2) / TS);
+        const DOOR = { x: CTR(9), y: CTR(9) };
+        const CORNERS = [{ x: CTR(17), y: CTR(0) }, { x: CTR(0), y: CTR(0) }, { x: CTR(17), y: CTR(20) }, { x: CTR(0), y: CTR(20) }];
+
+        const pac = { x: CTR(9), y: CTR(8), dir: null, next: null };
+
+        const GDEF = [
+            { name: 0, color: '#ff2222', sx: 9, sy: 3, rel: 0, dir0: 3 },
+            { name: 1, color: '#ff9ff5', sx: 9, sy: 9, rel: 1.5, dir0: 0 },
+            { name: 2, color: '#33ffff', sx: 9, sy: 9, rel: 3.5, dir0: 0 },
+            { name: 3, color: '#ffb847', sx: 9, sy: 9, rel: 6, dir0: 0 }];
+        let ghosts = GDEF.map(d => ({ ...d, x: CTR(d.sx), y: CTR(d.sy), tx: CTR(d.sx), ty: CTR(d.sy), dir: d.dir0, state: 'normal', release: d.rel }));
+
+        let score = 0, lives = 3, level = 1, state = 'ready', stateTimer = 0;
+        let frightTimer = 0, scatter = false, scatterTimer = 7, combo = 0, perfT = 0;
+        let best = +(localStorage.getItem('pac-best') || 0);
+        const $ = id => document.getElementById(id);
+        function updateHud() {
+            $('score').textContent = score; $('best').textContent = Math.max(best, score);
+            $('level').textContent = level;
+            $('lives').innerHTML = '';
+            for (let i = 0; i < Math.max(0, lives); i++) { const s = document.createElement('span'); s.className = 'life'; s.textContent = '☻'; $('lives').appendChild(s); }
+        }
+        function setTarget(g) {
+            const gx = cellOf(g.x), gy = cellOf(g.y), d = DV[g.dir];
+            g.tx = CTR(gx + d.x); g.ty = CTR(gy + d.y);
+        }
+        function resetPositions() {
+            pac.x = CTR(9); pac.y = CTR(8); pac.dir = null; pac.next = null;
+            ghosts.forEach(g => { g.x = CTR(g.sx); g.y = CTR(g.sy); g.dir = g.dir0; g.state = 'normal'; g.release = g.rel; setTarget(g); });
+            frightTimer = 0; scatter = false; scatterTimer = 7; combo = 0;
+        }
+        function startGame() { score = 0; lives = 3; level = 1; buildLevel(); buildWallPath(); resetPositions(); updateHud(); state = 'playing'; }
+
+        let AC = null, master = null, wakaFlip = false, lastWaka = 0;
+        function initAudio() {
+            if (!AC) { try { AC = new (window.AudioContext || window.webkitAudioContext)(); master = AC.createGain(); master.gain.value = 0.9; master.connect(AC.destination); } catch (e) { } }
+            if (AC && AC.state === 'suspended') AC.resume();
+        }
+        function beep(f, d, type = 'square', v = 0.12, delay = 0, slide = 0) {
+            if (!AC || !master) return;
+            const t0 = AC.currentTime + delay;
+            const o = AC.createOscillator(), g = AC.createGain();
+            o.type = type; o.frequency.setValueAtTime(f, t0);
+            if (slide) o.frequency.linearRampToValueAtTime(Math.max(30, f + slide), t0 + d);
+            g.gain.setValueAtTime(v, t0); g.gain.exponentialRampToValueAtTime(0.001, t0 + d);
+            o.connect(g); g.connect(master); o.start(t0); o.stop(t0 + d + 0.02);
+        }
+        const sWaka = () => { const n = performance.now(); if (n - lastWaka < 90) return; lastWaka = n; wakaFlip = !wakaFlip; beep(wakaFlip ? 540 : 360, 0.08, 'square', 0.10); };
+        const sEat = () => [440, 550, 660, 880].forEach((f, i) => beep(f, 0.10, 'square', 0.12, i * 0.09));
+        const sDie = () => beep(620, 0.9, 'sawtooth', 0.14, 0, -540);
+        const sPow = () => beep(180, 0.4, 'sawtooth', 0.12, 0, 90);
+        const sWin = () => [523, 659, 784, 1046].forEach((f, i) => beep(f, 0.16, 'square', 0.12, i * 0.13));
+
+        function targetOf(g) {
+            if (g.state === 'eaten') return DOOR;
+            if (g.state === 'frightened') return null;
+            if (scatter) return CORNERS[g.name];
+            const d = DV[pac.dir == null ? 1 : pac.dir];
+            switch (g.name) {
+                case 0: return { x: pac.x, y: pac.y };
+                case 1: return { x: pac.x + d.x * 4 * TS, y: pac.y + d.y * 4 * TS };
+                case 2: {
+                    const px = pac.x + d.x * 2 * TS, py = pac.y + d.y * 2 * TS;
+                    return { x: px * 2 - ghosts[0].x, y: py * 2 - ghosts[0].y };
+                }
+                case 3: return Math.hypot(g.x - pac.x, g.y - pac.y) > 8 * TS ? { x: pac.x, y: pac.y } : CORNERS[3];
+            }
+        }
+        function chooseDir(g) {
+            const gx = cellOf(g.x), gy = cellOf(g.y), rev = (g.dir + 2) % 4;
+            const t = targetOf(g);
+            const score = d => {
+                const tx = CTR(gx + DV[d].x), ty = CTR(gy + DV[d].y);
+                if (t == null) return Math.random() * 1000;
+                return Math.hypot(tx - t.x, ty - t.y) - (d === g.dir ? 3 : 0);
+            };
+            let best = -1, bd = Infinity;
+            for (let d = 0; d < 4; d++) {
+                if (d === rev) continue;
+                if (isWall(gx + DV[d].x, gy + DV[d].y)) continue;
+                const s = score(d);
+                if (s < bd) { bd = s; best = d; }
+            }
+            if (best === -1) best = rev;   // 死路脱困：往回走
+            g.dir = best;
+        }
+        function startFright() {
+            frightTimer = Math.max(2, 7 - level * 0.5); combo = 0;
+            ghosts.forEach(g => { if (g.state !== 'eaten') g.state = 'frightened'; });
+            sPow();
+        }
+        function stepGhost(g, speed, dt) {
+            const dx = g.tx - g.x, dy = g.ty - g.y;
+            const dist = Math.hypot(dx, dy), step = speed * dt * 60;
+            if (dist <= step) {
+                g.x = g.tx; g.y = g.ty;
+                if (g.state === 'eaten') {
+                    if (cellOf(g.x) === 9 && cellOf(g.y) === 9) {
+                        g.state = 'normal'; g.x = CTR(9); g.y = CTR(10); g.dir = 0; g.release = 2; setTarget(g);
+                    } else { chooseDir(g); setTarget(g); }
+                } else { chooseDir(g); setTarget(g); }
+            } else {
+                g.x += dx / dist * step; g.y += dy / dist * step;
+            }
+        }
+        function movePac(speed, dt) {
+            if (pac.dir == null) return;
+            const [dx, dy] = [DV[pac.dir].x, DV[pac.dir].y];
+            let nx = pac.x + dx * speed * dt * 60, ny = pac.y + dy * speed * dt * 60;
+            const gx = Math.floor(pac.x / TS), gy = Math.floor(pac.y / TS);
+            if (isWall(Math.floor(nx / TS), Math.floor(ny / TS))) {
+                if (dx > 0) nx = (gx + 1) * TS - 0.05; else if (dx < 0) nx = gx * TS + 0.05;
+                else if (dy > 0) ny = (gy + 1) * TS - 0.05; else ny = gy * TS + 0.05;
+            }
+            pac.x = nx; pac.y = ny;
+        }
+
+        function update(dt) {
+            if (state !== 'playing') return;
+            const sp = 1 + (level - 1) * 0.05;
+            const chaseT = Math.max(4, 10 - level * 0.6), scatterT = Math.max(1, 7 - level * 0.5);
+            scatterTimer -= dt;
+            if (scatterTimer <= 0) { scatter = !scatter; scatterTimer = scatter ? scatterT : chaseT; }
+            if (frightTimer > 0) {
+                frightTimer -= dt;
+                if (frightTimer <= 0) ghosts.forEach(g => { if (g.state === 'frightened') g.state = 'normal'; });
+            }
+
+            if (pac.dir == null && pac.next != null) pac.dir = pac.next;
+            if (pac.dir != null) {
+                if (pac.next != null && pac.next !== pac.dir) {
+                    const gx = Math.floor(pac.x / TS), gy = Math.floor(pac.y / TS);
+                    const cx = CTR(gx), cy = CTR(gy), cd = DV[pac.dir];
+                    const past = cd.x === 1 ? pac.x >= cx : cd.x === -1 ? pac.x <= cx : cd.y === 1 ? pac.y >= cy : cd.y === -1 ? pac.y <= cy : true;
+                    if ((past || pac.next === (pac.dir + 2) % 4) && !isWall(gx + DV[pac.next].x, gy + DV[pac.next].y)) {
+                        pac.dir = pac.next; pac.x = cx; pac.y = cy;
+                    }
+                }
+                movePac(3.2 * sp, dt);
+                const k = Math.floor(pac.x / TS) + ',' + Math.floor(pac.y / TS);
+                if (pellets.has(k)) {
+                    const wasPower = powers.has(k); pellets.delete(k);
+                    if (wasPower) { score += 50; startFright(); } else { score += 10; sWaka(); }
+                    updateHud();
+                    if (pellets.size === 0) { score += 1000 * level; updateHud(); sWin(); state = 'levelup'; stateTimer = 2; }
+                }
+            }
+            for (const g of ghosts) {
+                if (g.release > 0) { g.release -= dt; continue; }
+                if (g.state === 'eaten') stepGhost(g, 7, dt);
+                else stepGhost(g, (g.state === 'frightened' ? 1.9 : 2.9) * sp, dt);
+            }
+            if (pac.dir != null) for (const g of ghosts) {
+                if (g.state === 'eaten') continue;
+                if (Math.hypot(g.x - pac.x, g.y - pac.y) < TS * 0.55) {
+                    if (g.state === 'frightened') {
+                        g.state = 'eaten'; combo = Math.min(combo + 1, 4);
+                        score += 200 * Math.pow(2, combo - 1); updateHud(); sEat();
+                    } else { state = 'dying'; stateTimer = 2; sDie(); }
+                    break;
+                }
+            }
+        }
+
+        function drawGhost(g) {
+            const flash = g.state === 'frightened' && frightTimer < 2 && Math.floor(perfT * 5) % 2 === 0;
+            ctx.save(); ctx.translate(g.x, g.y);
+            if (g.state === 'eaten') {
+                const d = DV[g.dir];
+                for (const ex of [-4, 4]) {
+                    ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(ex, -5, 3, 0, 7); ctx.fill();
+                    ctx.fillStyle = '#2121de'; ctx.beginPath(); ctx.arc(ex + d.x * 1.8, -5 + d.y * 1.8, 1.6, 0, 7); ctx.fill();
+                }
+                ctx.restore(); return;
+            }
+            const r = TS / 2 - 2;
+            ctx.fillStyle = g.state === 'frightened' ? (flash ? '#f4f4f4' : '#2121ff') : g.color;
+            ctx.beginPath(); ctx.arc(0, -2, r, Math.PI, 0);
+            const y0 = r + 2, s = r / 2;
+            ctx.lineTo(r, y0);
+            for (let i = 0; i < 4; i++) { ctx.lineTo(r - s * (i + 0.5), y0 - 3); ctx.lineTo(r - s * (i + 1), y0); }
+            ctx.closePath(); ctx.fill();
+            if (g.state === 'frightened') {
+                ctx.fillStyle = flash ? '#8a2040' : '#ffb8ae';
+                ctx.fillRect(-6, -5, 3, 3); ctx.fillRect(3, -5, 3, 3);
+                for (let i = 0; i < 4; i++)ctx.fillRect(-6 + i * 3, 2, 2, 2);
+            } else {
+                const d = DV[g.dir];
+                for (const ex of [-4, 4]) {
+                    ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(ex, -5, 3, 0, 7); ctx.fill();
+                    ctx.fillStyle = '#2121de'; ctx.beginPath(); ctx.arc(ex + d.x * 1.8, -5 + d.y * 1.8, 1.6, 0, 7); ctx.fill();
+                }
+            }
+            ctx.restore();
+        }
+        function drawPac() {
+            ctx.save(); ctx.translate(pac.x, pac.y);
+            let rot = pac.dir == null ? 0 : [-Math.PI / 2, 0, Math.PI / 2, Math.PI][pac.dir];
+            let m = pac.dir == null ? 0.25 * Math.PI : 0.08 * Math.PI + Math.abs(Math.sin(perfT * 10)) * 0.35 * Math.PI;
+            if (state === 'dying') { const p = Math.min(1, (2 - stateTimer) / 2); rot = p * 4 * Math.PI; m = p * Math.PI; }
+            ctx.rotate(rot);
+            ctx.fillStyle = '#ffe600';
+            ctx.beginPath(); ctx.moveTo(0, 0); ctx.arc(0, 0, TS / 2 - 2, m, Math.PI * 2 - m); ctx.closePath(); ctx.fill();
+            ctx.restore();
+        }
+        function text(s, x, y, size, color) {
+            ctx.font = 'bold ' + size + 'px "Courier New",monospace'; ctx.textAlign = 'center';
+            ctx.lineWidth = 4; ctx.strokeStyle = '#000'; ctx.strokeText(s, x, y);
+            ctx.fillStyle = color; ctx.fillText(s, x, y);
+        }
+        function draw() {
+            ctx.fillStyle = '#000'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.strokeStyle = '#1b1bff'; ctx.lineWidth = 2; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+            ctx.stroke(wallPath);
+            ctx.fillStyle = '#ffb8de'; ctx.fillRect(7 * TS, DOOR.y - 2, 5 * TS, 4);
+            for (const k of pellets) {
+                const [x, y] = k.split(',').map(Number);
+                if (powers.has(k)) { ctx.fillStyle = '#ffb8ae'; ctx.beginPath(); ctx.arc(CTR(x), CTR(y), 3 + Math.sin(perfT * 6) * 1.2, 0, 7); ctx.fill(); }
+                else { ctx.fillStyle = '#ffb8ae'; ctx.fillRect(CTR(x) - 2, CTR(y) - 2, 4, 4); }
+            }
+            for (const g of ghosts) drawGhost(g);
+            if (state !== 'gameover') drawPac();
+            const cx = canvas.width / 2, cy = canvas.height / 2;
+            if (state === 'ready') {
+                if (Math.sin(perfT * 4) > -0.4) text('按 ENTER 開始', cx, cy, 20, '#ffe600');
+                text('方向鍵 / WASD 移動', cx, cy + 24, 12, '#8899cc');
+            }
+            if (state === 'paused') text('PAUSE (P 繼續)', cx, cy, 22, '#fff');
+            if (state === 'levelup') text('過關！', cx, cy, 26, '#33ff66');
+            if (state === 'gameover') { text('GAME OVER', cx, cy - 10, 26, '#ff2222'); text('按 ENTER 重來', cx, cy + 22, 14, '#ffe600'); }
+        }
+
+        const KEYS = { ArrowUp: 0, KeyW: 0, ArrowRight: 1, KeyD: 1, ArrowDown: 2, KeyS: 2, ArrowLeft: 3, KeyA: 3 };
+        addEventListener('keydown', e => {
+            initAudio();
+            if (e.code === 'Enter') { if (state === 'ready' || state === 'gameover') startGame(); return; }
+            if (e.code === 'KeyP' && (state === 'playing' || state === 'paused')) { state = state === 'paused' ? 'playing' : 'paused'; return; }
+            const d = KEYS[e.code];
+            if (d != null) { e.preventDefault(); pac.next = d; }
+        });
+        let tS = null;
+        canvas.addEventListener('touchstart', e => { initAudio(); tS = e.touches[0]; e.preventDefault(); }, { passive: false });
+        canvas.addEventListener('touchend', e => {
+            if (!tS) return; const t = e.changedTouches[0];
+            const dx = t.clientX - tS.clientX, dy = t.clientY - tS.clientY;
+            if (Math.hypot(dx, dy) > 20) pac.next = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 1 : 3) : (dy > 0 ? 2 : 0);
+            tS = null;
+        });
+        canvas.addEventListener('click', () => { initAudio(); if (state === 'ready' || state === 'gameover') startGame(); });
+        addEventListener('blur', () => { if (state === 'playing') state = 'paused'; });
+
+        buildLevel(); buildWallPath(); updateHud();
+        let last = 0;
+        function loop(t) {
+            const dt = Math.min(0.05, (t - last) / 1000) || 0; last = t; perfT += dt;
+            if (state === 'dying') {
+                stateTimer -= dt;
+                if (stateTimer <= 0) {
+                    lives--; updateHud();
+                    if (lives <= 0) { best = Math.max(best, score); localStorage.setItem('pac-best', best); state = 'gameover'; }
+                    else { resetPositions(); state = 'playing'; }
+                }
+            }
+            else if (state === 'levelup') {
+                stateTimer -= dt;
+                if (stateTimer <= 0) { level++; buildLevel(); resetPositions(); updateHud(); state = 'playing'; }
+            }
+            else update(dt);
+            draw();
+            requestAnimationFrame(loop);
+        }
+        requestAnimationFrame(loop);
+    </script>
+</body>
+
+</html>
